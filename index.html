@@ -1,8 +1,275 @@
+
 <html>
   <head>
-    <header>Huhu</header>
+      <title>Converter</title>
+      <script src=https://unpkg.com/mathjs/lib/browser/math.js></script>
+      <style>
+          td.fill {
+              width: 50%;
+              height: 90%;
+          }
+
+          table#editor {
+              width: 100%;
+              height: 90%;
+          }
+
+          textarea{
+              width: 100%;
+              height: 100%;
+          }
+
+          table#settings {
+              width: 100%;
+              height: 10%;
+          }
+
+          td.small{
+              width: 20%;
+          }
+
+          td.big{
+              width: 80%;
+          }
+          
+          button{
+              display: block;
+              width: 100%;
+          }
+
+          input{
+              display: block;
+              width: 100%;
+          }
+      </style>
   </head>
   <body>
-    <h1>Hi</h1>
+      <h1>RTTTL to BLHeli Converter</h1>
+      Songs are available <a href="http://esctunes.com/tunes" target="_blank">here</a>
+      
+      <table id="editor">
+          <tr>
+              <th><h2>Input</h2></th>
+              <th><h2>Output</h2></th>
+          </tr>
+          <tr>
+              <td class="fill"><textarea id="getText"></textarea></td>
+              <td class="fill"><textarea readonly id="setText"></textarea></td>
+          </tr>
+      </table>
+
+      <table id="settings">
+          <tr>
+              <td><label>speed divider:</label></td>
+              <td class="small"><INPUT id="multiplyer" TYPE="NUMBER" MIN="1" MAX="10" STEP="1" VALUE="1"></td>
+              <td class="big"><button onclick="convert()">convert</button></td>
+          </tr>
+      </table>
+      <script>
+          function convert() {
+              rtttl = document.getElementById("getText").value;
+              pre_multiplyer = document.getElementById("multiplyer").value;
+              
+              //todo rtttl remove emty space tab and new line
+
+              split1 = rtttl.split(":");
+              console.log("name:" + split1[0]);
+
+              //extract options
+              split2 = split1[1].split(",");
+              d=-1;
+              o=-1;
+              b=-1;
+              split2.forEach(i => {
+                  if(i[0] === "d") {
+                      d = i.substr(2,i.length-2);
+                  }  
+                  if(i[0] === "o"){
+                      o = i.substr(2,i.length-2);
+                  }
+                  if(i[0] === "b"){
+                      b = i.substr(2,i.length-2);
+                  }
+              });
+              console.log("d:"+d.toString()+" o:"+o.toString()+" b:"+b.toString());
+
+              //extract tones
+              valideNotes = ["a", "b", "c", "d", "e", "f", "g", "p"];
+              melody = [];
+
+              notes = split1[2].split(",")
+              notes.forEach(n=>{
+                  //check if half tone longer
+                  halflonger = 0
+                  if(n[n.length-1] === "."){
+                      halflonger=1;
+                      n = n.substr(0,n.length-1);
+                  }
+
+                  duration = -1
+                  tone = ""
+
+                  //check if duration is set
+                  if(valideNotes.includes(n[0])){
+
+                      //use default duration
+                      duration = d
+                      //octav is defined
+                      if(n.length==1){
+                          tone = n+o.toString()
+                      }else if(n.length>1){
+                          tone = n
+                      }else{
+                          tone = n+o.toString()
+                      }
+                  }else{
+                      //duration is no set:
+                      //find index where tone starts
+                      start = 0
+                      for(var i = 0; i<n.length;i++){
+                          if(valideNotes.includes(n[i])){
+                              start = i;
+                          }
+                      }
+
+                      //extract duartion
+                      if(start > 0){
+                          duration = parseInt(n.substr(0,start))
+                      }else{
+                          duration = 1
+                      }
+
+                      //extract tone
+                      tone = n.substr(start,n.length-start);
+                      //check if octav is set
+                      if ((valideNotes.includes(tone[tone.length-1])) || ( tone[tone.length-1] === "#")){
+                          tone = tone + o.toString()
+                      }
+                  }
+
+                  //check if tone is pause
+                  if(tone[0] === "p"){
+                      tone = tone[0]
+                  }
+
+                  //convert to new vormate (uppercase)
+                  tone = tone.toUpperCase()
+
+                  //handel halftone longer and add to array
+                  if (halflonger == 1){
+                      melody.push([tone,1.0/duration])
+                      melody.push([tone,1.0/(duration*2)])
+                  }else{
+                      duration = 1.0/duration
+                      melody.push([tone,duration])
+                  }
+
+              });
+
+              //get longest and shortes duration
+              max_duration = 1/16
+              smalles_duration = 1
+              melody.forEach(m =>{
+                  if(m[1] < smalles_duration){
+                      smalles_duration = m[1]
+                  }
+                  if(m[1] > max_duration){
+                      max_duration = m[1]
+                  }
+              });
+              //console.log(smalles_duration)
+              //console.log(max_duration)
+                  
+              //calc multiplayer to fit duratins into range (1/1 - 1/8)
+              multipy = 1.0
+              while((smalles_duration*multipy)<(1/8)){
+                  multipy += multipy
+              }
+              multipy *=  pre_multiplyer
+              //console.log(multipy)
+
+              //create string to put in blheli
+              str_melody = ""
+              str_melody_48 = ""
+              count = 0
+              clippedNotes = ""
+              clipped = 0
+
+              console.log(duration)
+              melody.forEach(m =>{
+                  if((count == 0) && (m[0] === "P")){
+                      return;
+                  }
+
+                  //check if durations fits in range
+                  if((m[1]*multipy)>=1.0){
+                      duration = (m[1]*multipy)
+                      while(duration>1.0){
+                          f = math.fraction(1/1)
+                          fstr= String(f.s*f.n)+"/"+String(f.d)
+                          console.log(fstr)
+                          str_melody += m[0] +" "+fstr+" "
+                          duration -= 1.0
+                          count += 1
+                          //check if max length is reached
+                          if(count == 48){
+                              str_melody_48 = str_melody
+                          }
+                      }
+                  
+
+                    if(duration > 0){
+                      console.log("-"+String(duration))
+                      f = math.fraction(duration)
+                      fstr= String(f.s*f.n)+"/"+String(f.d)
+                            console.log(fstr)
+                        str_melody += m[0] +" "+fstr+" "
+                        count += 1
+                        //check if max length is reached
+                        if(count == 48){
+                            str_melody_48 = str_melody
+                        }
+                    }
+                  }else{
+                      if((m[1]*multipy)>=(1/8)){
+                        console.log("--" + String(m[1]*multipy))
+                        f = math.fraction(m[1]*multipy)
+                        fstr= String(f.s*f.n)+"/"+String(f.d)
+                          console.log(fstr)
+                          str_melody += m[0] +" "+fstr+" "
+                          count += 1
+                          //check if max length is reached
+                          if(count == 48){
+                              str_melody_48 = str_melody
+                          }
+                      }else{
+                          clipped = 1
+                          console.log("---"+String(m[1]*multipy))
+                          f = math.fraction(m[1]*multipy)
+                          fstr= String(f.s*f.n)+"/"+String(f.d)
+                          console.log(fstr)
+                          clippedNotes += m[0] +" "+fstr+" "
+                      }
+                  }
+                
+              });
+
+              infos = ""
+              if(clipped==1){
+                  infos += "Some tones were out of range. Check the multiplayer Option if it is smaler than 1\n"
+                  infos += "Following tons were cut of:\n"
+                  infos += "\t"+clippedNotes+"\n"
+              }
+
+              if(count>48){
+                  infos += "\n"
+                  infos += "Cutted tu max length:\n"
+                  infos += str_melody_48
+              }
+
+              document.getElementById("setText").value = "name: " + split1[0] +"\n" + "d:"+d.toString()+" o:"+o.toString()+" b:"+b.toString()+"\n\n"+str_melody+"\n\n"+infos;
+          }
+      </script>
   </body>
 </html>
+
