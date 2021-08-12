@@ -14,9 +14,14 @@
               height: 90%;
           }
 
-          textarea{
+          #getText{
               width: 100%;
               height: 100%;
+          }
+
+          #setText, #toCOpy{
+            width: 100%;
+            height: 100%;
           }
 
           table#settings {
@@ -47,14 +52,23 @@
       <h1>RTTTL to BLHeli Converter</h1>
       Songs are available <a href="http://esctunes.com/tunes" target="_blank">here</a>
       
-      <table id="editor">
+      <table id="editor" border=2>
           <tr>
               <th><h2>Input</h2></th>
               <th><h2>Output</h2></th>
           </tr>
           <tr>
-              <td class="fill"><textarea id="getText"></textarea></td>
-              <td class="fill"><textarea readonly id="setText"></textarea></td>
+              <td class="fill" rowspan="4"><textarea id="getText"></textarea></td>
+              <td ><p>to copy:</p></td>
+          </tr>
+          <tr>
+            <td class="fill"><textarea readonly id="toCOpy"></textarea></td>
+          </tr>
+          <tr>
+            <td><p>Warnings:</p></td>
+          </tr>
+          <tr>
+            <td class="fill"><textarea readonly id="setText"></textarea></td>
           </tr>
       </table>
 
@@ -219,7 +233,6 @@
                   
 
                     if(duration > 0){
-                      console.log("-"+String(duration))
                       f = math.fraction(duration)
                       fstr= String(f.s*f.n)+"/"+String(f.d)
                             console.log(fstr)
@@ -232,7 +245,6 @@
                     }
                   }else{
                       if((m[1]*multipy)>=(1/8)){
-                        console.log("--" + String(m[1]*multipy))
                         f = math.fraction(m[1]*multipy)
                         fstr= String(f.s*f.n)+"/"+String(f.d)
                           console.log(fstr)
@@ -244,7 +256,6 @@
                           }
                       }else{
                           clipped = 1
-                          console.log("---"+String(m[1]*multipy))
                           f = math.fraction(m[1]*multipy)
                           fstr= String(f.s*f.n)+"/"+String(f.d)
                           console.log(fstr)
@@ -256,19 +267,27 @@
 
               infos = ""
               if(clipped==1){
-                  infos += "Some tones were out of range. Check the multiplayer Option if it is smaler than 1\n"
+                  infos += "Warning: Some tones were out of range. Try to change the divider option\n"
                   infos += "Following tons were cut of:\n"
                   infos += "\t"+clippedNotes+"\n"
               }
 
               if(count>48){
-                  infos += "\n"
-                  infos += "Cutted tu max length:\n"
-                  infos += str_melody_48
+                  infos += "Warnung: BLHeli only supperts up to 48 Notes, therefore the Song is cut. \nThe full song is:\n"
+                  infos += str_melody
+              }
+              if(count<=48){
+                document.getElementById("toCOpy").value = str_melody;
+                document.getElementById("setText").value = "";
+          
+              }else{
+                document.getElementById("toCOpy").value = str_melody_48;
+                document.getElementById("setText").value = infos;
+          
               }
 
-              document.getElementById("setText").value = "name: " + split1[0] +"\n" + "d:"+d.toString()+" o:"+o.toString()+" b:"+b.toString()+"\n\n"+str_melody+"\n\n"+infos;
-          }
+         
+              }
       </script>
   </body>
 </html>
